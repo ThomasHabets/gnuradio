@@ -55,8 +55,8 @@ private:
     void _resetXAxisPoints(double left, double right);
     void _autoScaleY(double bottom, double top);
 
-    double* d_xdata;
-    std::vector<double*> d_ydata;
+    std::vector<double> d_xdata;
+    std::vector<std::vector<double>> d_ydata;
 
     unsigned int d_bins;
     bool d_accum;
