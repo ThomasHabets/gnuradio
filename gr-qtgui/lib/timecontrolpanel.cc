@@ -10,10 +10,15 @@
 
 #include <gnuradio/qtgui/timecontrolpanel.h>
 
-TimeControlPanel::TimeControlPanel(TimeDisplayForm* form) : QVBoxLayout(), d_parent(form)
+TimeControlPanel::TimeControlPanel(TimeDisplayForm* form)
+    : QVBoxLayout(),
+      d_parent(form),
+      d_axes_box("Axes"),
+      d_trigger_box("Trigger"),
+      d_extras_box("Extras")
+
 {
     // Set up the box for axes items
-    d_axes_box = new QGroupBox("Axes");
     d_axes_layout = new QVBoxLayout;
     d_autoscale_check = new QCheckBox("Autoscale");
     d_grid_check = new QCheckBox("Grid");
@@ -52,7 +57,6 @@ TimeControlPanel::TimeControlPanel(TimeDisplayForm* form) : QVBoxLayout(), d_par
 
 
     // Set up the box for trigger items
-    d_trigger_box = new QGroupBox("Trigger");
     d_trigger_layout = new QVBoxLayout;
     d_trigger_mode_combo = new QComboBox();
     d_trigger_mode_combo->addItem("Free");
@@ -85,7 +89,6 @@ TimeControlPanel::TimeControlPanel(TimeDisplayForm* form) : QVBoxLayout(), d_par
     d_trigger_delay_layout->addWidget(d_trigger_delay_minus);
 
     // Set up the box for other items
-    d_extras_box = new QGroupBox("Extras");
     d_extras_layout = new QVBoxLayout;
     d_autoscale_button = new QPushButton("Autoscale");
     d_stop_button = new QPushButton("Stop");
@@ -98,21 +101,21 @@ TimeControlPanel::TimeControlPanel(TimeDisplayForm* form) : QVBoxLayout(), d_par
     d_axes_layout->addLayout(d_yoff_layout);
     d_axes_layout->addLayout(d_yrange_layout);
     d_axes_layout->addLayout(d_xmax_layout);
-    d_axes_box->setLayout(d_axes_layout);
+    d_axes_box.setLayout(d_axes_layout);
 
     d_trigger_layout->addWidget(d_trigger_mode_combo);
     d_trigger_layout->addWidget(d_trigger_slope_combo);
     d_trigger_layout->addLayout(d_trigger_level_layout);
     d_trigger_layout->addLayout(d_trigger_delay_layout);
-    d_trigger_box->setLayout(d_trigger_layout);
+    d_trigger_box.setLayout(d_trigger_layout);
 
     d_extras_layout->addWidget(d_autoscale_button);
     d_extras_layout->addWidget(d_stop_button);
-    d_extras_box->setLayout(d_extras_layout);
+    d_extras_box.setLayout(d_extras_layout);
 
-    addWidget(d_axes_box);
-    addWidget(d_trigger_box);
-    addWidget(d_extras_box);
+    addWidget(&d_axes_box);
+    addWidget(&d_trigger_box);
+    addWidget(&d_extras_box);
     addItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding));
 
     // Connect up the control signals/slots
@@ -163,13 +166,9 @@ TimeControlPanel::TimeControlPanel(TimeDisplayForm* form) : QVBoxLayout(), d_par
 
 TimeControlPanel::~TimeControlPanel()
 {
-    removeWidget(d_axes_box);
-    removeWidget(d_trigger_box);
-    removeWidget(d_extras_box);
-    delete d_axes_box;
-    delete d_trigger_box;
-    delete d_extras_box;
-
+    removeWidget(&d_axes_box);
+    removeWidget(&d_trigger_box);
+    removeWidget(&d_extras_box);
     // All other children of the boxes are automatically deleted.
 }
 

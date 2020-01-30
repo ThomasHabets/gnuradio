@@ -114,7 +114,7 @@ private slots:
 
 private:
     uint64_t d_num_real_data_points;
-    QIntValidator* d_int_validator;
+    QIntValidator d_int_validator;
 
     double d_samp_rate, d_center_freq;
     int d_fftsize;
@@ -125,24 +125,24 @@ private:
     bool d_clicked;
     double d_clicked_freq;
 
-    FFTSizeMenu* d_sizemenu;
-    FFTAverageMenu* d_avgmenu;
-    FFTWindowMenu* d_winmenu;
-    QAction *d_minhold_act, *d_maxhold_act;
+    FFTSizeMenu* d_sizemenu;                // Managed by QT.
+    FFTAverageMenu* d_avgmenu;              // Managed by QT.
+    FFTWindowMenu* d_winmenu;               // Managed by QT.
+    QAction *d_minhold_act, *d_maxhold_act; // Managed by QT.
 
-    QMenu* d_triggermenu;
-    TriggerModeMenu* d_tr_mode_menu;
-    PopupMenu* d_tr_level_act;
-    TriggerChannelMenu* d_tr_channel_menu;
-    PopupMenu* d_tr_tag_key_act;
+    QMenu* d_triggermenu;                  // Managed by QT.
+    TriggerModeMenu* d_tr_mode_menu;       // Managed by QT.
+    PopupMenu* d_tr_level_act;             // Managed by QT.
+    TriggerChannelMenu* d_tr_channel_menu; // Managed by QT.
+    PopupMenu* d_tr_tag_key_act;           // Managed by QT.
 
     gr::qtgui::trigger_mode d_trig_mode;
     float d_trig_level;
     int d_trig_channel;
     std::string d_trig_tag_key;
 
-    QAction* d_controlpanelmenu;
-    FreqControlPanel* d_controlpanel;
+    QAction* d_controlpanelmenu; // Managed by QT.
+    std::unique_ptr<FreqControlPanel> d_controlpanel;
 };
 
 #endif /* FREQ_DISPLAY_FORM_H */

@@ -77,8 +77,8 @@ private:
     void _resetXAxisPoints();
     void _autoScale(double bottom, double top);
 
-    std::vector<double*> d_ydata;
-    double* d_xdata;
+    std::vector<std::vector<double>> d_ydata;
+    std::vector<double> d_xdata;
 
     double d_sample_rate;
 
@@ -86,7 +86,7 @@ private:
     bool d_semilogy;
     bool d_autoscale_shot;
 
-    std::vector<std::vector<QwtPlotMarker*>> d_tag_markers;
+    std::vector<std::vector<std::unique_ptr<QwtPlotMarker>>> d_tag_markers;
     std::vector<bool> d_tag_markers_en;
 
     QColor d_tag_text_color;

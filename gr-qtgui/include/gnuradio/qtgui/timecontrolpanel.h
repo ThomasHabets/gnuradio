@@ -42,9 +42,9 @@ signals:
 
 private:
     TimeDisplayForm* d_parent;
-    QGroupBox* d_axes_box;
-    QGroupBox* d_trigger_box;
-    QGroupBox* d_extras_box;
+    QGroupBox d_axes_box;
+    QGroupBox d_trigger_box;
+    QGroupBox d_extras_box;
 
     QVBoxLayout* d_axes_layout;
     QHBoxLayout* d_yoff_layout;

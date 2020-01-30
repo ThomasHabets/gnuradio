@@ -11,16 +11,16 @@
 #include <gnuradio/qtgui/freqdisplayform.h>
 
 #include <gnuradio/qtgui/freqcontrolpanel.h>
+#include <boost/make_unique.hpp>
 #include <QMessageBox>
 #include <QSpacerItem>
 #include <cmath>
 #include <iostream>
 
 FreqDisplayForm::FreqDisplayForm(int nplots, QWidget* parent)
-    : DisplayForm(nplots, parent)
+    : DisplayForm(nplots, parent), d_int_validator(this)
 {
-    d_int_validator = new QIntValidator(this);
-    d_int_validator->setBottom(0);
+    d_int_validator.setBottom(0);
 
     d_layout = new QGridLayout(this);
     d_layout->setContentsMargins(0, 0, 0, 0);
@@ -29,8 +29,6 @@ FreqDisplayForm::FreqDisplayForm(int nplots, QWidget* parent)
 
     d_layout->setColumnStretch(0, 1);
     setLayout(d_layout);
-
-    d_controlpanel = NULL;
 
     d_num_real_data_points = 1024;
     d_fftsize = 1024;
@@ -147,8 +145,6 @@ FreqDisplayForm::~FreqDisplayForm()
 
     // Don't worry about deleting Display Plots - they are deleted when parents are
     // deleted
-    delete d_int_validator;
-
     teardownControlPanel();
 }
 
@@ -163,52 +159,56 @@ void FreqDisplayForm::setupControlPanel(bool en)
 
 void FreqDisplayForm::setupControlPanel()
 {
-    if (d_controlpanel)
-        delete d_controlpanel;
-
     // Create the control panel layout
-    d_controlpanel = new FreqControlPanel(this);
+    d_controlpanel = boost::make_unique<FreqControlPanel>(this);
 
     // Connect action items in menu to controlpanel widgets
-    connect(d_grid_act, SIGNAL(triggered(bool)), d_controlpanel, SLOT(toggleGrid(bool)));
+    connect(d_grid_act,
+            SIGNAL(triggered(bool)),
+            d_controlpanel.get(),
+            SLOT(toggleGrid(bool)));
     connect(d_axislabelsmenu,
             SIGNAL(triggered(bool)),
-            d_controlpanel,
+            d_controlpanel.get(),
             SLOT(toggleAxisLabels(bool)));
-    connect(
-        d_sizemenu, SIGNAL(whichTrigger(int)), d_controlpanel, SLOT(toggleFFTSize(int)));
+    connect(d_sizemenu,
+            SIGNAL(whichTrigger(int)),
+            d_controlpanel.get(),
+            SLOT(toggleFFTSize(int)));
     connect(d_winmenu,
             SIGNAL(whichTrigger(gr::filter::firdes::win_type)),
-            d_controlpanel,
+            d_controlpanel.get(),
             SLOT(toggleFFTWindow(gr::filter::firdes::win_type)));
-    connect(this, SIGNAL(signalFFTSize(int)), d_controlpanel, SLOT(toggleFFTSize(int)));
+    connect(
+        this, SIGNAL(signalFFTSize(int)), d_controlpanel.get(), SLOT(toggleFFTSize(int)));
     connect(this,
             SIGNAL(signalFFTWindow(gr::filter::firdes::win_type)),
-            d_controlpanel,
+            d_controlpanel.get(),
             SLOT(toggleFFTWindow(gr::filter::firdes::win_type)));
     connect(d_maxhold_act,
             SIGNAL(triggered(bool)),
-            d_controlpanel,
+            d_controlpanel.get(),
             SLOT(toggleMaxHold(bool)));
     connect(d_minhold_act,
             SIGNAL(triggered(bool)),
-            d_controlpanel,
+            d_controlpanel.get(),
             SLOT(toggleMinHold(bool)));
     connect(d_avgmenu,
             SIGNAL(whichTrigger(float)),
-            d_controlpanel,
+            d_controlpanel.get(),
             SLOT(setFFTAverage(float)));
     connect(d_tr_mode_menu,
             SIGNAL(whichTrigger(gr::qtgui::trigger_mode)),
-            d_controlpanel,
+            d_controlpanel.get(),
             SLOT(toggleTriggerMode(gr::qtgui::trigger_mode)));
     connect(this,
             SIGNAL(signalTriggerMode(gr::qtgui::trigger_mode)),
-            d_controlpanel,
+            d_controlpanel.get(),
             SLOT(toggleTriggerMode(gr::qtgui::trigger_mode)));
-    connect(d_stop_act, SIGNAL(triggered()), d_controlpanel, SLOT(toggleStopButton()));
+    connect(
+        d_stop_act, SIGNAL(triggered()), d_controlpanel.get(), SLOT(toggleStopButton()));
 
-    d_layout->addLayout(d_controlpanel, 0, 1);
+    d_layout->addLayout(d_controlpanel.get(), 0, 1);
 
     d_controlpanel->toggleGrid(d_grid_act->isChecked());
     d_controlpanel->toggleAxisLabels(d_axislabelsmenu->isChecked());
@@ -225,9 +225,8 @@ void FreqDisplayForm::setupControlPanel()
 void FreqDisplayForm::teardownControlPanel()
 {
     if (d_controlpanel) {
-        d_layout->removeItem(d_controlpanel);
-        delete d_controlpanel;
-        d_controlpanel = NULL;
+        d_layout->removeItem(d_controlpanel.get());
+        d_controlpanel = nullptr;
     }
     d_controlpanelmenu->setChecked(false);
 }
