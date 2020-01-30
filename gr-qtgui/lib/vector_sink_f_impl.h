@@ -39,8 +39,12 @@ private:
 
     std::vector<double*> d_magbufs;
 
-
+    // Required now for Qt; argc must be greater than 0 and argv
+    // must have at least one valid character. Must be valid through
+    // life of the qApplication:
+    // https://doc.qt.io/qt-5/qapplication.html#QApplication
     int d_argc;
+    char d_argv0;
     char* d_argv;
     QWidget* d_parent;
     VectorDisplayForm* d_main_gui;

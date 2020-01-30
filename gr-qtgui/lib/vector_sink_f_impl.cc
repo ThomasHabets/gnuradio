@@ -57,16 +57,11 @@ vector_sink_f_impl::vector_sink_f_impl(unsigned int vlen,
       d_nconnections(nconnections),
       d_port(pmt::mp(MSG_PORT_OUT_XVAL)),
       d_msg(pmt::mp("x")),
+      d_argc(1),
+      d_argv0(0),
+      d_argv(&d_argv0),
       d_parent(parent)
 {
-    // Required now for Qt; argc must be greater than 0 and argv
-    // must have at least one valid character. Must be valid through
-    // life of the qApplication:
-    // http://harmattan-dev.nokia.com/docs/library/html/qt4/qapplication.html
-    d_argc = 1;
-    d_argv = new char;
-    d_argv[0] = '\0';
-
     // setup output message port to post frequency when display is
     // double-clicked
     message_port_register_out(d_port);
@@ -91,8 +86,6 @@ vector_sink_f_impl::~vector_sink_f_impl()
     for (int i = 0; i < d_nconnections; i++) {
         volk_free(d_magbufs[i]);
     }
-
-    delete d_argv;
 }
 
 bool vector_sink_f_impl::check_topology(int ninputs, int noutputs)
