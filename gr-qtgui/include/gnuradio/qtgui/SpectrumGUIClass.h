@@ -105,27 +105,26 @@ public:
 protected:
 private:
     gr::thread::mutex d_mutex;
-    int64_t _dataPoints;
-    std::string _title;
-    double _centerFrequency;
-    double _startFrequency;
-    double _stopFrequency;
-    float _powerValue;
-    bool _windowOpennedFlag;
-    int _windowType;
-    int64_t _lastDataPointCount;
-    int _fftSize;
-    gr::high_res_timer_type _lastGUIUpdateTime;
-    unsigned int _pendingGUIUpdateEventsCount;
-    int _droppedEntriesCount;
-    bool _fftBuffersCreatedFlag;
-    double _updateTime;
+    const uint64_t d_dataPoints;
+    std::string d_title;
+    double d_centerFrequency;
+    double d_startFrequency;
+    double d_stopFrequency;
+    float d_powerValue = 1;
+    bool d_windowOpennedFlag = false;
+    int d_windowType = 5;
+    uint64_t d_lastDataPointCount;
+    int d_fftSize;
+    gr::high_res_timer_type d_lastGUIUpdateTime = 0;
+    unsigned int d_pendingGUIUpdateEventsCount = 0;
+    int d_droppedEntriesCount = 0;
+    double d_updateTime;
 
-    SpectrumDisplayForm* _spectrumDisplayForm;
+    SpectrumDisplayForm* d_spectrumDisplayForm;
 
-    float* _fftPoints;
-    double* _realTimeDomainPoints;
-    double* _imagTimeDomainPoints;
+    std::vector<float> d_fftPoints;
+    std::vector<double> d_realTimeDomainPoints;
+    std::vector<double> d_imagTimeDomainPoints;
 };
 
 #endif /* SPECTRUM_GUI_CLASS_HPP */
