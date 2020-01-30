@@ -41,15 +41,17 @@ private:
     const pmt::pmt_t d_port_bw;
 
     bool d_shift;
-    fft::fft_complex* d_fft;
+    std::unique_ptr<fft::fft_complex> d_fft;
 
     int d_index;
-    std::vector<float*> d_residbufs;
-    std::vector<double*> d_magbufs;
-    double* d_pdu_magbuf;
-    float* d_fbuf;
+    std::vector<volk::vector<float>> d_residbufs;
+    volk::vector<float> d_pdu_residbufs;
+    std::vector<volk::vector<double>> d_magbufs;
+    volk::vector<double> d_pdu_magbuf;
+    volk::vector<float> d_fbuf;
 
     int d_argc;
+    char d_argv0;
     char* d_argv;
     QWidget* d_parent;
     FreqDisplayForm* d_main_gui;
@@ -85,7 +87,7 @@ private:
     void _reset();
     void _gui_update_trigger();
     void _test_trigger_tags(int start, int nitems);
-    void _test_trigger_norm(int nitems, std::vector<double*> inputs);
+    void _test_trigger_norm(int nitems, const std::vector<volk::vector<double>>& inputs);
 
 public:
     freq_sink_f_impl(int size,

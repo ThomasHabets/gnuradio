@@ -16,6 +16,7 @@
 
 #include <gnuradio/io_signature.h>
 #include <gnuradio/prefs.h>
+#include <boost/make_unique.hpp>
 
 #include <qwt_symbol.h>
 #include <volk/volk.h>
@@ -58,16 +59,11 @@ freq_sink_f_impl::freq_sink_f_impl(int fftsize,
       d_nconnections(nconnections),
       d_port(pmt::mp("freq")),
       d_port_bw(pmt::mp("bw")),
+      d_argc(1),
+      d_argv0(0),
+      d_argv(&d_argv0),
       d_parent(parent)
 {
-    // Required now for Qt; argc must be greater than 0 and argv
-    // must have at least one valid character. Must be valid through
-    // life of the qApplication:
-    // http://harmattan-dev.nokia.com/docs/library/html/qt4/qapplication.html
-    d_argc = 1;
-    d_argv = new char;
-    d_argv[0] = '\0';
-
     // setup bw input port
     message_port_register_in(d_port_bw);
     set_msg_handler(d_port_bw, boost::bind(&freq_sink_f_impl::handle_set_bw, this, _1));
@@ -88,28 +84,18 @@ freq_sink_f_impl::freq_sink_f_impl(int fftsize,
     // this is usually desired when plotting
     d_shift = true;
 
-    d_fft = new fft::fft_complex(d_fftsize, true);
-    d_fbuf = (float*)volk_malloc(d_fftsize * sizeof(float), volk_get_alignment());
-    memset(d_fbuf, 0, d_fftsize * sizeof(float));
+    d_fft = boost::make_unique<fft::fft_complex>(d_fftsize, true);
+    d_fbuf.resize(d_fftsize);
 
     d_index = 0;
     // save the last "connection" for the PDU memory
     for (int i = 0; i < d_nconnections; i++) {
-        d_residbufs.push_back(
-            (float*)volk_malloc(d_fftsize * sizeof(float), volk_get_alignment()));
-        d_magbufs.push_back(
-            (double*)volk_malloc(d_fftsize * sizeof(double), volk_get_alignment()));
-
-        memset(d_residbufs[i], 0, d_fftsize * sizeof(float));
-        memset(d_magbufs[i], 0, d_fftsize * sizeof(double));
+        d_residbufs.emplace_back(d_fftsize);
+        d_magbufs.emplace_back(d_fftsize);
     }
 
-    d_residbufs.push_back(
-        (float*)volk_malloc(d_fftsize * sizeof(float), volk_get_alignment()));
-    d_pdu_magbuf = (double*)volk_malloc(d_fftsize * sizeof(double), volk_get_alignment());
-    d_magbufs.push_back(d_pdu_magbuf);
-    memset(d_residbufs[d_nconnections], 0, d_fftsize * sizeof(float));
-    memset(d_pdu_magbuf, 0, d_fftsize * sizeof(double));
+    d_pdu_residbufs.resize(d_fftsize);
+    d_pdu_magbuf.resize(d_fftsize);
 
     buildwindow();
 
@@ -122,14 +108,6 @@ freq_sink_f_impl::~freq_sink_f_impl()
 {
     if (!d_main_gui->isClosed())
         d_main_gui->close();
-
-    // +1 to handle PDU buffers; will also take care of d_pdu_magbuf
-    for (int i = 0; i < d_nconnections + 1; i++) {
-        volk_free(d_residbufs[i]);
-        volk_free(d_magbufs[i]);
-    }
-    delete d_fft;
-    volk_free(d_fbuf);
 
     delete d_argv;
 }
@@ -423,23 +401,13 @@ bool freq_sink_f_impl::fftresize()
     d_fftavg = d_main_gui->getFFTAverage();
 
     if (newfftsize != d_fftsize) {
-        // Resize residbuf and replace data
-        // +1 to handle PDU buffers
-        for (int i = 0; i < d_nconnections + 1; i++) {
-            volk_free(d_residbufs[i]);
-            volk_free(d_magbufs[i]);
-
-            d_residbufs[i] =
-                (float*)volk_malloc(newfftsize * sizeof(float), volk_get_alignment());
-            d_magbufs[i] =
-                (double*)volk_malloc(newfftsize * sizeof(double), volk_get_alignment());
-
-            memset(d_residbufs[i], 0, newfftsize * sizeof(float));
-            memset(d_magbufs[i], 0, newfftsize * sizeof(double));
+        for (int i = 0; i < d_nconnections; i++) {
+            d_residbufs[i] = volk::vector<float>(newfftsize);
+            d_magbufs[i] = volk::vector<double>(newfftsize);
         }
 
-        // Update the pointer to the newly allocated memory
-        d_pdu_magbuf = d_magbufs[d_nconnections];
+        d_pdu_residbufs = volk::vector<float>(newfftsize);
+        d_pdu_magbuf = volk::vector<double>(newfftsize);
 
         // Set new fft size and reset buffer index
         // (throws away any currently held data, but who cares?)
@@ -450,12 +418,9 @@ bool freq_sink_f_impl::fftresize()
         buildwindow();
 
         // Reset FFTW plan for new size
-        delete d_fft;
-        d_fft = new fft::fft_complex(d_fftsize, true);
+        d_fft = boost::make_unique<fft::fft_complex>(d_fftsize, true);
 
-        volk_free(d_fbuf);
-        d_fbuf = (float*)volk_malloc(d_fftsize * sizeof(float), volk_get_alignment());
-        memset(d_fbuf, 0, d_fftsize * sizeof(float));
+        d_fbuf.resize(d_fftsize);
 
         d_fft_shift.resize(d_fftsize);
 
@@ -528,9 +493,10 @@ void freq_sink_f_impl::_test_trigger_tags(int start, int nitems)
     }
 }
 
-void freq_sink_f_impl::_test_trigger_norm(int nitems, std::vector<double*> inputs)
+void freq_sink_f_impl::_test_trigger_norm(int nitems,
+                                          const std::vector<volk::vector<double>>& inputs)
 {
-    const double* in = (const double*)inputs[d_trigger_channel];
+    const double* in = (const double*)inputs[d_trigger_channel].data();
     for (int i = 0; i < nitems; i++) {
         d_trigger_count++;
 
@@ -585,9 +551,11 @@ int freq_sink_f_impl::work(int noutput_items,
             for (int n = 0; n < d_nconnections; n++) {
                 // Fill up residbuf with d_fftsize number of items
                 in = (const float*)input_items[n];
-                memcpy(d_residbufs[n], &in[d_index], sizeof(float) * d_fftsize);
+                memcpy(d_residbufs[n].data(),
+                       &in[d_index],
+                       sizeof(d_residbufs[n][0]) * d_residbufs[n].size());
 
-                fft(d_fbuf, d_residbufs[n], d_fftsize);
+                fft(d_fbuf.data(), d_residbufs[n].data(), d_fftsize);
                 for (int x = 0; x < d_fftsize; x++) {
                     d_magbufs[n][x] = (double)((1.0 - d_fftavg) * d_magbufs[n][x] +
                                                (d_fftavg)*d_fbuf[x]);
@@ -604,8 +572,13 @@ int freq_sink_f_impl::work(int noutput_items,
             // If a trigger (FREE always triggers), plot and reset state
             if (d_triggered) {
                 d_last_time = gr::high_res_timer_now();
+                std::vector<double*> mag(d_magbufs.size());
+                std::transform(std::begin(d_magbufs),
+                               std::end(d_magbufs),
+                               std::begin(mag),
+                               [](volk::vector<double>& t) { return t.data(); });
                 d_qApplication->postEvent(d_main_gui,
-                                          new FreqUpdateEvent(d_magbufs, d_fftsize));
+                                          new FreqUpdateEvent(mag, d_fftsize));
                 _reset();
             }
         }
@@ -657,20 +630,24 @@ void freq_sink_f_impl::handle_pdus(pmt::pmt_t msg)
         int nffts = static_cast<int>(ceilf(num));
 
         // Clear this as we will be accumulating in the for loop over nffts
-        memset(d_pdu_magbuf, 0, sizeof(double) * d_fftsize);
+        memset(d_pdu_magbuf.data(), 0, sizeof(d_pdu_magbuf[0]) * d_pdu_magbuf.size());
 
         size_t min = 0;
         size_t max = std::min(d_fftsize, static_cast<int>(len));
         for (int n = 0; n < nffts; n++) {
             // Clear in case (max-min) < d_fftsize
-            memset(d_residbufs[d_nconnections], 0x00, sizeof(float) * d_fftsize);
+            memset(d_pdu_residbufs.data(),
+                   0x00,
+                   sizeof(d_pdu_residbufs[0]) * d_pdu_residbufs.size());
 
             // Copy in as much of the input samples as we can
-            memcpy(d_residbufs[d_nconnections], &in[min], sizeof(float) * (max - min));
+            memcpy(d_pdu_residbufs.data(),
+                   &in[min],
+                   sizeof(d_pdu_residbufs[0]) * (max - min));
 
             // Apply the window and FFT; copy data into the PDU
             // magnitude buffer.
-            fft(d_fbuf, d_residbufs[d_nconnections], d_fftsize);
+            fft(d_fbuf.data(), d_pdu_residbufs.data(), d_fftsize);
             for (int x = 0; x < d_fftsize; x++) {
                 d_pdu_magbuf[x] += (double)d_fbuf[x];
             }
@@ -687,7 +664,12 @@ void freq_sink_f_impl::handle_pdus(pmt::pmt_t msg)
         }
 
         // update gui per-pdu
-        d_qApplication->postEvent(d_main_gui, new FreqUpdateEvent(d_magbufs, d_fftsize));
+        std::vector<double*> mag(d_magbufs.size());
+        std::transform(std::begin(d_magbufs),
+                       std::end(d_magbufs),
+                       std::begin(mag),
+                       [](volk::vector<double>& t) { return t.data(); });
+        d_qApplication->postEvent(d_main_gui, new FreqUpdateEvent(mag, d_fftsize));
     }
 }
 
