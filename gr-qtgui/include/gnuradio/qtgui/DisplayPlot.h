@@ -275,13 +275,13 @@ protected slots:
 
 protected:
     unsigned int d_nplots;
-    std::vector<QwtPlotCurve*> d_plot_curve;
+    std::vector<QwtPlotCurve*> d_plot_curve;  // Owned by QWT framework.
 
-    QwtPlotPanner* d_panner;
-    QwtPlotZoomer* d_zoomer;
+    QwtPlotPanner* d_panner; // Owned by QWT framework.
+    QwtPlotZoomer* d_zoomer; // Owned by QWT framework.
 
-    QwtDblClickPlotPicker* d_picker;
-    QwtPlotMagnifier* d_magnifier;
+    QwtDblClickPlotPicker* d_picker;  // Owned by QWT framework.
+    QwtPlotMagnifier* d_magnifier;  // Owned by QWT framework.
 
     int64_t d_numPoints;
 
