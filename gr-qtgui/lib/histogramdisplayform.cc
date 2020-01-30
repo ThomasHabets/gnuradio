@@ -16,13 +16,12 @@
 #include <iostream>
 
 HistogramDisplayForm::HistogramDisplayForm(int nplots, QWidget* parent)
-    : DisplayForm(nplots, parent)
+    : DisplayForm(nplots, parent), d_int_validator(this)
 {
     d_semilogx = false;
     d_semilogy = false;
 
-    d_int_validator = new QIntValidator(this);
-    d_int_validator->setBottom(0);
+    d_int_validator.setBottom(0);
 
     d_layout = new QGridLayout(this);
     d_layout->setContentsMargins(0, 0, 0, 0);
@@ -86,7 +85,6 @@ HistogramDisplayForm::~HistogramDisplayForm()
 
     // Don't worry about deleting Display Plots - they are deleted when parents are
     // deleted
-    delete d_int_validator;
 }
 
 HistogramDisplayPlot* HistogramDisplayForm::getPlot()

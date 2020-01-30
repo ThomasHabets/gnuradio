@@ -53,7 +53,7 @@ private slots:
     void newData(const QEvent*);
 
 private:
-    QIntValidator* d_int_validator;
+    QIntValidator d_int_validator;
 
     double d_startFrequency;
     double d_stopFrequency;

@@ -105,7 +105,7 @@ private:
     void _resetXAxisPoints();
     void _autoScale(double bottom, double top);
 
-    std::vector<double*> d_ydata;
+    std::vector<std::vector<double>> d_ydata;
 
     QwtPlotCurve* d_min_vec_plot_curve;
     QwtPlotCurve* d_max_vec_plot_curve;
@@ -131,13 +131,13 @@ private:
 
     QwtPlotMarker* d_marker_ref_level;
 
-    double* d_xdata;
+    std::vector<double> d_xdata;
 
     QString d_x_axis_label;
     QString d_y_axis_label;
 
-    double* d_min_vec_data;
-    double* d_max_vec_data;
+    std::vector<double> d_min_vec_data;
+    std::vector<double> d_max_vec_data;
 
     double d_ref_level;
 };
