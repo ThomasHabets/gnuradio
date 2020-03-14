@@ -17,13 +17,12 @@
 namespace gr {
 namespace digital {
 
+template <int ORDER, bool USE_SNR>
 class costas_loop_cc_impl : public costas_loop_cc
 {
 private:
     float d_error;
     float d_noise;
-    bool d_use_snr;
-    int d_order;
 
     /*! \brief the phase detector circuit for 8th-order PSK loops.
      *
@@ -125,7 +124,7 @@ private:
     };
 
 public:
-    costas_loop_cc_impl(float loop_bw, unsigned int order, bool use_snr = false);
+    costas_loop_cc_impl(float loop_bw);
     ~costas_loop_cc_impl();
 
     float error() const { return d_error; };
@@ -136,9 +135,14 @@ public:
 
     int work(int noutput_items,
              gr_vector_const_void_star& input_items,
-             gr_vector_void_star& output_items);
+             gr_vector_void_star& output_items) override;
 };
-
+template class costas_loop_cc_impl<2, true>;
+template class costas_loop_cc_impl<2, false>;
+template class costas_loop_cc_impl<4, true>;
+template class costas_loop_cc_impl<4, false>;
+template class costas_loop_cc_impl<8, true>;
+template class costas_loop_cc_impl<8, false>;
 } /* namespace digital */
 } /* namespace gr */
 

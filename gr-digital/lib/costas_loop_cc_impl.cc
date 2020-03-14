@@ -24,30 +24,45 @@ namespace digital {
 
 costas_loop_cc::sptr costas_loop_cc::make(float loop_bw, unsigned int order, bool use_snr)
 {
-    return gnuradio::get_initial_sptr(new costas_loop_cc_impl(loop_bw, order, use_snr));
+#define COSTAS_MAKE(o, s)                                                          \
+    if (order == o && use_snr == s) {                                              \
+        return gnuradio::get_initial_sptr(new costas_loop_cc_impl<o, s>(loop_bw)); \
+    }
+    COSTAS_MAKE(2, true);
+    COSTAS_MAKE(2, false);
+    COSTAS_MAKE(4, true);
+    COSTAS_MAKE(4, false);
+    COSTAS_MAKE(8, true);
+    COSTAS_MAKE(8, false);
+#undef COSTAS_MAKE
+    assert(0);
 }
 
 static int ios[] = { sizeof(gr_complex), sizeof(float), sizeof(float), sizeof(float) };
 static std::vector<int> iosig(ios, ios + sizeof(ios) / sizeof(int));
 
-costas_loop_cc_impl::costas_loop_cc_impl(float loop_bw, unsigned int order, bool use_snr)
+template <int ORDER, bool USE_SNR>
+costas_loop_cc_impl<ORDER, USE_SNR>::costas_loop_cc_impl(float loop_bw)
     : sync_block("costas_loop_cc",
                  io_signature::make(1, 1, sizeof(gr_complex)),
                  io_signature::makev(1, 4, iosig)),
       blocks::control_loop(loop_bw, 1.0, -1.0),
       d_error(0),
-      d_noise(1.0),
-      d_use_snr(use_snr),
-      d_order(order)
+      d_noise(1.0)
 {
     message_port_register_in(pmt::mp("noise"));
-    set_msg_handler(pmt::mp("noise"),
-                    boost::bind(&costas_loop_cc_impl::handle_set_noise, this, _1));
+    set_msg_handler(
+        pmt::mp("noise"),
+        boost::bind(&costas_loop_cc_impl<ORDER, USE_SNR>::handle_set_noise, this, _1));
 }
 
-costas_loop_cc_impl::~costas_loop_cc_impl() {}
+template <int ORDER, bool USE_SNR>
+costas_loop_cc_impl<ORDER, USE_SNR>::~costas_loop_cc_impl()
+{
+}
 
-void costas_loop_cc_impl::handle_set_noise(pmt::pmt_t msg)
+template <int ORDER, bool USE_SNR>
+void costas_loop_cc_impl<ORDER, USE_SNR>::handle_set_noise(pmt::pmt_t msg)
 {
     if (pmt::is_real(msg)) {
         d_noise = pmt::to_double(msg);
@@ -55,9 +70,10 @@ void costas_loop_cc_impl::handle_set_noise(pmt::pmt_t msg)
     }
 }
 
-int costas_loop_cc_impl::work(int noutput_items,
-                              gr_vector_const_void_star& input_items,
-                              gr_vector_void_star& output_items)
+template <int ORDER, bool USE_SNR>
+int costas_loop_cc_impl<ORDER, USE_SNR>::work(int noutput_items,
+                                              gr_vector_const_void_star& input_items,
+                                              gr_vector_void_star& output_items)
 {
     const gr_complex* iptr = (gr_complex*)input_items[0];
     gr_complex* optr = (gr_complex*)output_items[0];
@@ -95,21 +111,21 @@ int costas_loop_cc_impl::work(int noutput_items,
 
         // EXPENSIVE LINE with function pointer, switch was about 20% faster in testing.
         // Left in for logic justification/reference. d_error = phase_detector_2(optr[i]);
-        switch (d_order) {
+        switch (ORDER) {
         case 2:
-            if (d_use_snr)
+            if (USE_SNR)
                 d_error = phase_detector_snr_2(optr[i]);
             else
                 d_error = phase_detector_2(optr[i]);
             break;
         case 4:
-            if (d_use_snr)
+            if (USE_SNR)
                 d_error = phase_detector_snr_4(optr[i]);
             else
                 d_error = phase_detector_4(optr[i]);
             break;
         case 8:
-            if (d_use_snr)
+            if (USE_SNR)
                 d_error = phase_detector_snr_8(optr[i]);
             else
                 d_error = phase_detector_8(optr[i]);
@@ -134,7 +150,8 @@ int costas_loop_cc_impl::work(int noutput_items,
     return noutput_items;
 }
 
-void costas_loop_cc_impl::setup_rpc()
+template <int ORDER, bool USE_SNR>
+void costas_loop_cc_impl<ORDER, USE_SNR>::setup_rpc()
 {
 #ifdef GR_CTRLPORT
     // Getters
