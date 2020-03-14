@@ -56,7 +56,7 @@ int glfsr_source_b_impl::work(int noutput_items,
 
     int i;
     for (i = 0; i < noutput_items; i++) {
-        out[i] = d_glfsr->next_bit();
+        out[i] = d_glfsr.next_bit();
         d_index++;
         if (d_index > d_length && d_repeat == false)
             break;

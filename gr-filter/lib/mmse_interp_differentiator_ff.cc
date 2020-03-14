@@ -21,19 +21,15 @@ namespace filter {
 
 mmse_interp_differentiator_ff::mmse_interp_differentiator_ff()
 {
-    filters.resize(DNSTEPS + 1);
+    filters.reserve(DNSTEPS + 1);
 
     for (int i = 0; i < DNSTEPS + 1; i++) {
         std::vector<float> t(&Dtaps[i][0], &Dtaps[i][DNTAPS]);
-        filters[i] = new kernel::fir_filter_fff(1, t);
+        filters.emplace_back(1, t);
     }
 }
 
-mmse_interp_differentiator_ff::~mmse_interp_differentiator_ff()
-{
-    for (int i = 0; i < DNSTEPS + 1; i++)
-        delete filters[i];
-}
+mmse_interp_differentiator_ff::~mmse_interp_differentiator_ff() {}
 
 unsigned mmse_interp_differentiator_ff::ntaps() const { return DNTAPS; }
 
@@ -47,8 +43,7 @@ float mmse_interp_differentiator_ff::differentiate(const float input[], float mu
         throw std::runtime_error("mmse_interp_differentiator_ff: imu out of bounds.");
     }
 
-    float r = filters[imu]->filter(input);
-    return r;
+    return filters[imu].filter(input);
 }
 
 } /* namespace filter */

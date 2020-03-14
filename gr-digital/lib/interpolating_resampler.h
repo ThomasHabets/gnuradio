@@ -296,8 +296,8 @@ public:
     gr_complex differentiate(const gr_complex input[], float mu) const;
 
 private:
-    filter::mmse_fir_interpolator_cc* d_interp;
-    filter::mmse_interp_differentiator_cc* d_interp_diff;
+    const filter::mmse_fir_interpolator_cc d_interp;
+    const filter::mmse_interp_differentiator_cc d_interp_diff;
 };
 
 /*!
@@ -344,8 +344,8 @@ public:
     float differentiate(const float input[], float mu) const;
 
 private:
-    filter::mmse_fir_interpolator_ff* d_interp;
-    filter::mmse_interp_differentiator_ff* d_interp_diff;
+    const filter::mmse_fir_interpolator_ff d_interp;
+    const filter::mmse_interp_differentiator_ff d_interp_diff;
 };
 
 /*************************************************************************/

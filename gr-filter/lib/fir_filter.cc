@@ -32,6 +32,19 @@ fir_filter<IN_T, OUT_T, TAP_T>::fir_filter(int decimation, const std::vector<TAP
 }
 
 template <class IN_T, class OUT_T, class TAP_T>
+fir_filter<IN_T, OUT_T, TAP_T>::fir_filter(fir_filter<IN_T,OUT_T, TAP_T>&& rhs)
+  :d_taps(std::move(rhs.d_taps)),
+   d_ntaps(rhs.d_ntaps),
+   d_aligned_taps(rhs.d_aligned_taps),
+   d_output(rhs.d_output),
+   d_align(rhs.d_align),
+   d_naligned(rhs.d_naligned)
+{
+  d_output = nullptr;
+  d_aligned_taps = nullptr;
+}
+
+template <class IN_T, class OUT_T, class TAP_T>
 fir_filter<IN_T, OUT_T, TAP_T>::~fir_filter()
 {
     // Free all aligned taps
@@ -121,7 +134,7 @@ void fir_filter<IN_T, OUT_T, TAP_T>::filterNdec(OUT_T output[],
 }
 
 template <>
-float fir_filter<float, float, float>::filter(const float input[])
+float fir_filter<float, float, float>::filter(const float input[]) const
 {
     const float* ar = (float*)((size_t)input & ~(d_align - 1));
     unsigned al = input - ar;
@@ -131,7 +144,8 @@ float fir_filter<float, float, float>::filter(const float input[])
 }
 
 template <>
-gr_complex fir_filter<gr_complex, gr_complex, float>::filter(const gr_complex input[])
+gr_complex
+fir_filter<gr_complex, gr_complex, float>::filter(const gr_complex input[]) const
 {
     const gr_complex* ar = (gr_complex*)((size_t)input & ~(d_align - 1));
     unsigned al = input - ar;
@@ -141,7 +155,7 @@ gr_complex fir_filter<gr_complex, gr_complex, float>::filter(const gr_complex in
 }
 
 template <>
-gr_complex fir_filter<float, gr_complex, gr_complex>::filter(const float input[])
+gr_complex fir_filter<float, gr_complex, gr_complex>::filter(const float input[]) const
 {
     const float* ar = (float*)((size_t)input & ~(d_align - 1));
     unsigned al = input - ar;
@@ -152,7 +166,7 @@ gr_complex fir_filter<float, gr_complex, gr_complex>::filter(const float input[]
 
 template <>
 gr_complex
-fir_filter<gr_complex, gr_complex, gr_complex>::filter(const gr_complex input[])
+fir_filter<gr_complex, gr_complex, gr_complex>::filter(const gr_complex input[]) const
 {
     const gr_complex* ar = (gr_complex*)((size_t)input & ~(d_align - 1));
     unsigned al = input - ar;
@@ -163,7 +177,7 @@ fir_filter<gr_complex, gr_complex, gr_complex>::filter(const gr_complex input[])
 
 template <>
 gr_complex
-fir_filter<std::int16_t, gr_complex, gr_complex>::filter(const std::int16_t input[])
+fir_filter<std::int16_t, gr_complex, gr_complex>::filter(const std::int16_t input[]) const
 {
     const std::int16_t* ar = (std::int16_t*)((size_t)input & ~(d_align - 1));
     unsigned al = input - ar;
@@ -174,7 +188,7 @@ fir_filter<std::int16_t, gr_complex, gr_complex>::filter(const std::int16_t inpu
 }
 
 template <>
-short fir_filter<float, std::int16_t, float>::filter(const float input[])
+short fir_filter<float, std::int16_t, float>::filter(const float input[]) const
 {
     const float* ar = (float*)((size_t)input & ~(d_align - 1));
     unsigned al = input - ar;

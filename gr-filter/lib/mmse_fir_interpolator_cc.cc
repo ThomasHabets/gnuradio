@@ -21,19 +21,15 @@ namespace filter {
 
 mmse_fir_interpolator_cc::mmse_fir_interpolator_cc()
 {
-    filters.resize(NSTEPS + 1);
+    filters.reserve(NSTEPS + 1);
 
     for (int i = 0; i < NSTEPS + 1; i++) {
         std::vector<float> t(&taps[i][0], &taps[i][NTAPS]);
-        filters[i] = new kernel::fir_filter_ccf(1, t);
+        filters.emplace_back(1, t);
     }
 }
 
-mmse_fir_interpolator_cc::~mmse_fir_interpolator_cc()
-{
-    for (int i = 0; i < NSTEPS + 1; i++)
-        delete filters[i];
-}
+mmse_fir_interpolator_cc::~mmse_fir_interpolator_cc() {}
 
 unsigned mmse_fir_interpolator_cc::ntaps() const { return NTAPS; }
 
@@ -47,8 +43,7 @@ gr_complex mmse_fir_interpolator_cc::interpolate(const gr_complex input[], float
         throw std::runtime_error("mmse_fir_interpolator_cc: imu out of bounds.");
     }
 
-    gr_complex r = filters[imu]->filter(input);
-    return r;
+    return filters[imu].filter(input);
 }
 
 } /* namespace filter */

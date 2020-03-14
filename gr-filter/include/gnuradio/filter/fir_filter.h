@@ -24,6 +24,7 @@ template <class IN_T, class OUT_T, class TAP_T>
 class FILTER_API fir_filter
 {
 public:
+    fir_filter(fir_filter<IN_T,OUT_T, TAP_T>&& rhs);
     fir_filter(int decimation, const std::vector<TAP_T>& taps);
     ~fir_filter();
 
@@ -32,7 +33,7 @@ public:
     std::vector<TAP_T> taps() const;
     unsigned int ntaps() const;
 
-    OUT_T filter(const IN_T input[]);
+    OUT_T filter(const IN_T input[]) const;
     void filterN(OUT_T output[], const IN_T input[], unsigned long n);
     void filterNdec(OUT_T output[],
                     const IN_T input[],

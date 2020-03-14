@@ -143,69 +143,46 @@ interpolating_resampler_fff* interpolating_resampler_fff::make(
 /*************************************************************************/
 
 interp_resampler_mmse_8tap_cc::interp_resampler_mmse_8tap_cc(bool derivative)
-    : interpolating_resampler_ccf(IR_MMSE_8TAP, derivative),
-      d_interp(NULL),
-      d_interp_diff(NULL)
+    : interpolating_resampler_ccf(IR_MMSE_8TAP, derivative)
 {
-    d_interp = new filter::mmse_fir_interpolator_cc();
-    if (d_derivative) {
-        d_interp_diff = new filter::mmse_interp_differentiator_cc();
-    }
 }
 
-interp_resampler_mmse_8tap_cc::~interp_resampler_mmse_8tap_cc()
-{
-    delete d_interp;
-    if (d_derivative)
-        delete d_interp_diff;
-}
+interp_resampler_mmse_8tap_cc::~interp_resampler_mmse_8tap_cc() {}
 
 gr_complex interp_resampler_mmse_8tap_cc::interpolate(const gr_complex input[],
                                                       float mu) const
 {
-    return d_interp->interpolate(input, mu);
+    return d_interp.interpolate(input, mu);
 }
 
 gr_complex interp_resampler_mmse_8tap_cc::differentiate(const gr_complex input[],
                                                         float mu) const
 {
-    return d_interp_diff->differentiate(input, mu);
+    return d_interp_diff.differentiate(input, mu);
 }
 
-unsigned int interp_resampler_mmse_8tap_cc::ntaps() const { return d_interp->ntaps(); }
+unsigned int interp_resampler_mmse_8tap_cc::ntaps() const { return d_interp.ntaps(); }
 
 /*************************************************************************/
 
 interp_resampler_mmse_8tap_ff::interp_resampler_mmse_8tap_ff(bool derivative)
-    : interpolating_resampler_fff(IR_MMSE_8TAP, derivative),
-      d_interp(NULL),
-      d_interp_diff(NULL)
+    : interpolating_resampler_fff(IR_MMSE_8TAP, derivative)
 {
-    d_interp = new filter::mmse_fir_interpolator_ff();
-
-    if (d_derivative) {
-        d_interp_diff = new filter::mmse_interp_differentiator_ff();
-    }
 }
 
-interp_resampler_mmse_8tap_ff::~interp_resampler_mmse_8tap_ff()
-{
-    delete d_interp;
-    if (d_derivative)
-        delete d_interp_diff;
-}
+interp_resampler_mmse_8tap_ff::~interp_resampler_mmse_8tap_ff() {}
 
 float interp_resampler_mmse_8tap_ff::interpolate(const float input[], float mu) const
 {
-    return d_interp->interpolate(input, mu);
+    return d_interp.interpolate(input, mu);
 }
 
 float interp_resampler_mmse_8tap_ff::differentiate(const float input[], float mu) const
 {
-    return d_interp_diff->differentiate(input, mu);
+    return d_interp_diff.differentiate(input, mu);
 }
 
-unsigned int interp_resampler_mmse_8tap_ff::ntaps() const { return d_interp->ntaps(); }
+unsigned int interp_resampler_mmse_8tap_ff::ntaps() const { return d_interp.ntaps(); }
 
 /*************************************************************************/
 

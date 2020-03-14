@@ -45,7 +45,7 @@ glfsr_source_f_impl::glfsr_source_f_impl(unsigned int degree,
 
 glfsr_source_f_impl::~glfsr_source_f_impl() {}
 
-uint32_t glfsr_source_f_impl::mask() const { return d_glfsr->mask(); }
+uint32_t glfsr_source_f_impl::mask() const { return d_glfsr.mask(); }
 
 int glfsr_source_f_impl::work(int noutput_items,
                               gr_vector_const_void_star& input_items,
@@ -57,7 +57,7 @@ int glfsr_source_f_impl::work(int noutput_items,
 
     int i;
     for (i = 0; i < noutput_items; i++) {
-        out[i] = (float)d_glfsr->next_bit() * 2.0 - 1.0;
+        out[i] = (float)d_glfsr.next_bit() * 2.0 - 1.0;
         d_index++;
         if (d_index > d_length && d_repeat == false)
             break;
