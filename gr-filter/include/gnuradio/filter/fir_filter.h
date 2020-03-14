@@ -13,6 +13,7 @@
 
 #include <gnuradio/filter/api.h>
 #include <gnuradio/gr_complex.h>
+#include <volk/volk_alloc.hh>
 #include <cstdint>
 #include <vector>
 
@@ -24,7 +25,6 @@ template <class IN_T, class OUT_T, class TAP_T>
 class FILTER_API fir_filter
 {
 public:
-    fir_filter(fir_filter<IN_T,OUT_T, TAP_T>&& rhs);
     fir_filter(int decimation, const std::vector<TAP_T>& taps);
     ~fir_filter();
 
@@ -43,10 +43,10 @@ public:
 protected:
     std::vector<TAP_T> d_taps;
     unsigned int d_ntaps;
-    TAP_T** d_aligned_taps;
-    OUT_T* d_output;
-    int d_align;
-    int d_naligned;
+    std::vector<volk::vector<TAP_T>> d_aligned_taps;
+    mutable volk::vector<OUT_T> d_output; // Mutable because it's scratch space.
+    const int d_align;
+    const int d_naligned;
 };
 typedef fir_filter<float, float, float> fir_filter_fff;
 typedef fir_filter<gr_complex, gr_complex, float> fir_filter_ccf;
