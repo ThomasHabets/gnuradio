@@ -22,7 +22,7 @@ class costas_loop_cc_impl : public costas_loop_cc
 {
 private:
     float d_error;
-    float d_noise;
+    float d_invnoise;
 
     /*! \brief the phase detector circuit for 8th-order PSK loops.
      *
@@ -45,7 +45,7 @@ private:
    Circuits and Systems, Vol. 2, pp. 1447 - 1450, 2004.
          */
 
-        const float K = (sqrtf(2.0) - 1);
+        constexpr float K = (sqrtf(2.0) - 1);
         if (fabsf(sample.real()) >= fabsf(sample.imag())) {
             return ((sample.real() > 0.0f ? 1.0f : -1.0f) * sample.imag() -
                     (sample.imag() > 0.0f ? 1.0f : -1.0f) * sample.real() * K);
@@ -85,8 +85,8 @@ private:
      */
     float phase_detector_snr_8(gr_complex sample) const // for 8PSK
     {
-        const float K = (sqrtf(2.0) - 1.0);
-        const float snr = std::norm(sample) / d_noise;
+        constexpr float K = (sqrtf(2.0) - 1.0);
+        const float snr = std::norm(sample) * d_invnoise;
         if (fabsf(sample.real()) >= fabsf(sample.imag())) {
             return ((blocks::tanhf_lut(snr * sample.real()) * sample.imag()) -
                     (blocks::tanhf_lut(snr * sample.imag()) * sample.real() * K));
@@ -105,7 +105,7 @@ private:
      */
     float phase_detector_snr_4(gr_complex sample) const // for QPSK
     {
-        const float snr = std::norm(sample) / d_noise;
+        const float snr = std::norm(sample) * d_invnoise;
         return ((blocks::tanhf_lut(snr * sample.real()) * sample.imag()) -
                 (blocks::tanhf_lut(snr * sample.imag()) * sample.real()));
     };
@@ -119,7 +119,7 @@ private:
      */
     float phase_detector_snr_2(gr_complex sample) const // for BPSK
     {
-        const float snr = std::norm(sample) / d_noise;
+        const float snr = std::norm(sample) * d_invnoise;
         return blocks::tanhf_lut(snr * sample.real()) * sample.imag();
     };
 

@@ -48,7 +48,7 @@ costas_loop_cc_impl<ORDER, USE_SNR>::costas_loop_cc_impl(float loop_bw)
                  io_signature::makev(1, 4, iosig)),
       blocks::control_loop(loop_bw, 1.0, -1.0),
       d_error(0),
-      d_noise(1.0)
+      d_invnoise(1.0)
 {
     message_port_register_in(pmt::mp("noise"));
     set_msg_handler(
@@ -65,8 +65,7 @@ template <int ORDER, bool USE_SNR>
 void costas_loop_cc_impl<ORDER, USE_SNR>::handle_set_noise(pmt::pmt_t msg)
 {
     if (pmt::is_real(msg)) {
-        d_noise = pmt::to_double(msg);
-        d_noise = powf(10.0f, d_noise / 10.0f);
+        d_invnoise = 1.0 / powf(10.0f, pmt::to_double(msg) / 10.0f);
     }
 }
 
@@ -89,19 +88,23 @@ int costas_loop_cc_impl<ORDER, USE_SNR>::work(int noutput_items,
                       pmt::intern("phase_est"));
 
     // Get this out of the for loop if not used:
-    bool has_additional_outputs = false;
-    if (freq_optr)
-        has_additional_outputs = true;
-    else if (phase_optr)
-        has_additional_outputs = true;
-    else if (error_optr)
-        has_additional_outputs = true;
+    const bool has_additional_outputs = (freq_optr!=nullptr);
 
+    const int tag_count = tags.size();
+    const int nitems_read0 = nitems_read(0);
+    int tag_index = 0;
+    size_t tag_ofs = 0;
+    if (!tags.empty()) {
+      tag_ofs = tags[tag_ofs].offset - nitems_read0;
+    }
     for (int i = 0; i < noutput_items; i++) {
-        if (!tags.empty()) {
-            if (tags[0].offset - nitems_read(0) == (size_t)i) {
-                d_phase = (float)pmt::to_double(tags[0].value);
-                tags.erase(tags.begin());
+        if (tag_index < tag_count) {
+            if (tag_ofs == (size_t)i) {
+                d_phase = (float)pmt::to_double(tags[tag_index].value);
+                tag_index++;
+                if (tag_index < tag_count) {
+                  tag_ofs = tags[tag_index].offset - nitems_read0;
+                }
             }
         }
 
