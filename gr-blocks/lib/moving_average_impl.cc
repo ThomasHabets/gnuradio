@@ -22,6 +22,25 @@ namespace gr {
 namespace blocks {
 
 namespace {
+
+template <typename T,
+          typename std::enable_if<(std::is_same<T, std::int16_t>::value ||
+                                   std::is_same<T, std::int32_t>::value ||
+                                   std::is_same<T, float>::value),
+                                  int>::type = 0>
+constexpr inline T identity() noexcept
+{
+    return 1;
+}
+
+template <typename T,
+          typename std::enable_if<std::is_same<T, gr_complex>::value, int>::type = 0>
+constexpr inline T identity() noexcept
+{
+    return T{ 1.0, 0.0 };
+}
+
+
 template <typename T>
 inline T volk_sum(T* tmp, const T* in, int num)
 {
@@ -192,10 +211,14 @@ int moving_average_impl<T>::work(int noutput_items,
             volk_add(d_sum.data(), d_sum.data(), &in[i * d_vlen], d_vlen);
         }
 
+        // Naming this constant outside the loop seems to optimize better.
+        const bool unity = d_scale == identity<T>();
         for (unsigned int i = 0; i < num_iter; i++) {
             T* t = &out[i * d_vlen];
             volk_add(t, d_sum.data(), &in[(i + d_length - 1) * d_vlen], d_vlen);
-            volk_scale(t, d_scale, d_vlen);
+            if (!unity) {
+                volk_scale(t, d_scale, d_vlen);
+            }
             volk_sub(d_sum.data(), t, &in[i * d_vlen], d_vlen);
         }
         // Benchmarking shows that it's faster to scale inside the loop than
