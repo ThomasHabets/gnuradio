@@ -25,9 +25,9 @@ class moving_average_impl : public moving_average<T>
 {
 private:
     int d_length;
+    volk::vector<T> d_scratch;
     T d_scale;
-    volk::vector<T> d_scales;
-    int d_max_iter;
+    const int d_max_iter;
     const unsigned int d_vlen;
     volk::vector<T> d_sum;
 

@@ -21,6 +21,85 @@
 namespace gr {
 namespace blocks {
 
+namespace {
+template <typename T>
+inline T volk_sum(T* tmp, const T* in, int num)
+{
+    return std::accumulate(in, in + num, T{});
+}
+
+template <>
+inline float volk_sum<float>(float* tmp, const float* in, int num)
+{
+    volk_32f_accumulator_s32f(tmp, in, num);
+    return tmp[0];
+}
+
+
+template <typename T>
+inline void volk_add(T* out, const T* add1, const T* add2, unsigned int num)
+{
+    for (unsigned int elem = 0; elem < num; elem++) {
+        out[elem] = add1[elem] + add2[elem];
+    }
+}
+
+template <>
+inline void
+volk_add<float>(float* out, const float* add1, const float* add2, unsigned int num)
+{
+    volk_32f_x2_add_32f(out, add1, add2, num);
+}
+
+template <>
+inline void volk_add<gr_complex>(gr_complex* out,
+                                 const gr_complex* add1,
+                                 const gr_complex* add2,
+                                 unsigned int num)
+{
+    volk_32fc_x2_add_32fc(out, add1, add2, num);
+}
+
+template <typename T>
+inline void volk_sub(T* out, const T* in, const T* sub, unsigned int num)
+{
+    for (unsigned int elem = 0; elem < num; elem++) {
+        out[elem] = in[elem] - sub[elem];
+    }
+}
+
+template <>
+inline void
+volk_sub<float>(float* out, const float* in, const float* sub, unsigned int num)
+{
+    volk_32f_x2_subtract_32f(out, in, sub, num);
+}
+
+// TODO: Add volk_sub specialization for gr_complex?
+
+template <typename T>
+inline void volk_scale(T* out, const T scale, unsigned int num)
+{
+    for (unsigned int elem = 0; elem < num; elem++) {
+        out[elem] *= scale;
+    }
+}
+
+template <>
+inline void volk_scale<float>(float* out, const float scale, unsigned int num)
+{
+    volk_32f_s32f_normalize(out, scale, num);
+}
+
+template <>
+inline void
+volk_scale<gr_complex>(gr_complex* out, const gr_complex scale, unsigned int num)
+{
+    volk_32fc_s32fc_multiply_32fc(out, out, scale, num);
+}
+
+} // namespace
+
 template <class T>
 typename moving_average<T>::sptr
 moving_average<T>::make(int length, T scale, int max_iter, unsigned int vlen)
@@ -38,6 +117,7 @@ moving_average_impl<T>::moving_average_impl(int length,
                  io_signature::make(1, 1, sizeof(T) * vlen),
                  io_signature::make(1, 1, sizeof(T) * vlen)),
       d_length(length),
+      d_scratch(length),
       d_scale(scale),
       d_max_iter(max_iter),
       d_vlen(vlen),
@@ -50,7 +130,6 @@ moving_average_impl<T>::moving_average_impl(int length,
     // vector storage
     if (d_vlen > 1) {
         d_sum = volk::vector<T>(d_vlen);
-        d_scales = volk::vector<T>(d_vlen, d_scale);
     }
 }
 
@@ -81,67 +160,6 @@ void moving_average_impl<T>::set_scale(T scale)
     d_updated = true;
 }
 
-template <typename T>
-inline void volk_add(T* out, const T* add, unsigned int num)
-{
-    for (unsigned int elem = 0; elem < num; elem++) {
-        out[elem] += add[elem];
-    }
-}
-
-template <>
-inline void volk_add<float>(float* out, const float* add, unsigned int num)
-{
-    volk_32f_x2_add_32f(out, out, add, num);
-}
-
-template <>
-inline void volk_add<gr_complex>(gr_complex* out, const gr_complex* add, unsigned int num)
-{
-    volk_32fc_x2_add_32fc(out, out, add, num);
-}
-
-template <typename T>
-inline void volk_sub(T* out, const T* sub, unsigned int num)
-{
-    for (unsigned int elem = 0; elem < num; elem++) {
-        out[elem] -= sub[elem];
-    }
-}
-
-template <>
-inline void volk_sub<float>(float* out, const float* sub, unsigned int num)
-{
-    volk_32f_x2_subtract_32f(out, out, sub, num);
-}
-
-// TODO: Add volk_sub specialization for gr_complex?
-
-template <typename T>
-inline void volk_mul(T* out, const T* in, const T* scale, unsigned int num)
-{
-    for (unsigned int elem = 0; elem < num; elem++) {
-        out[elem] = in[elem] * scale[elem];
-    }
-}
-
-template <>
-inline void
-volk_mul<float>(float* out, const float* in, const float* mul, unsigned int num)
-{
-    volk_32f_x2_multiply_32f(out, in, mul, num);
-}
-
-template <>
-inline void volk_mul<gr_complex>(gr_complex* out,
-                                 const gr_complex* in,
-                                 const gr_complex* mul,
-                                 unsigned int num)
-{
-    volk_32fc_x2_multiply_32fc(out, in, mul, num);
-}
-
-
 template <class T>
 int moving_average_impl<T>::work(int noutput_items,
                                  gr_vector_const_void_star& input_items,
@@ -150,7 +168,6 @@ int moving_average_impl<T>::work(int noutput_items,
     if (d_updated) {
         d_length = d_new_length;
         d_scale = d_new_scale;
-        std::fill(std::begin(d_scales), std::end(d_scales), d_scale);
         this->set_history(d_length);
         d_updated = false;
         return 0; // history requirements might have changed
@@ -161,7 +178,7 @@ int moving_average_impl<T>::work(int noutput_items,
 
     const unsigned int num_iter = std::min(noutput_items, d_max_iter);
     if (d_vlen == 1) {
-        T sum = std::accumulate(&in[0], &in[d_length - 1], T{});
+        T sum = volk_sum(d_scratch.data(), in, d_length - 1);
 
         for (unsigned int i = 0; i < num_iter; i++) {
             sum += in[i + d_length - 1];
@@ -170,18 +187,20 @@ int moving_average_impl<T>::work(int noutput_items,
         }
 
     } else { // d_vlen > 1
-        // gets automatically optimized well
-        std::copy(&in[0], &in[d_vlen], std::begin(d_sum));
-
-        for (int i = 1; i < d_length - 1; i++) {
-            volk_add(d_sum.data(), &in[i * d_vlen], d_vlen);
+        volk_add(d_sum.data(), in, &in[d_vlen], d_vlen);
+        for (int i = 2; i < d_length - 1; i++) {
+            volk_add(d_sum.data(), d_sum.data(), &in[i * d_vlen], d_vlen);
         }
 
         for (unsigned int i = 0; i < num_iter; i++) {
-            volk_add(d_sum.data(), &in[(i + d_length - 1) * d_vlen], d_vlen);
-            volk_mul(&out[i * d_vlen], d_sum.data(), d_scales.data(), d_vlen);
-            volk_sub(d_sum.data(), &in[i * d_vlen], d_vlen);
+            T* t = &out[i * d_vlen];
+            volk_add(t, d_sum.data(), &in[(i + d_length - 1) * d_vlen], d_vlen);
+            volk_scale(t, d_scale, d_vlen);
+            volk_sub(d_sum.data(), t, &in[i * d_vlen], d_vlen);
         }
+        // Benchmarking shows that it's faster to scale inside the loop than
+        // here outside.
+        // Otherwise: volk_scale(out, d_scale, num_iter * d_vlen);
     }
     return num_iter;
 }
