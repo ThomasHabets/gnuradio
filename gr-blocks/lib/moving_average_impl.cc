@@ -40,15 +40,14 @@ constexpr inline T identity() noexcept
     return T{ 1.0, 0.0 };
 }
 
-
 template <typename T>
-inline T volk_sum(T* tmp, const T* in, int num)
+inline T volk_sum(T* tmp, const T* in, int num) noexcept
 {
     return std::accumulate(in, in + num, T{});
 }
 
 template <>
-inline float volk_sum<float>(float* tmp, const float* in, int num)
+inline float volk_sum<float>(float* tmp, const float* in, int num) noexcept
 {
     volk_32f_accumulator_s32f(tmp, in, num);
     return tmp[0];
@@ -56,7 +55,7 @@ inline float volk_sum<float>(float* tmp, const float* in, int num)
 
 
 template <typename T>
-inline void volk_add(T* out, const T* add1, const T* add2, unsigned int num)
+inline void volk_add(T* out, const T* add1, const T* add2, unsigned int num) noexcept
 {
     for (unsigned int elem = 0; elem < num; elem++) {
         out[elem] = add1[elem] + add2[elem];
@@ -65,7 +64,7 @@ inline void volk_add(T* out, const T* add1, const T* add2, unsigned int num)
 
 template <>
 inline void
-volk_add<float>(float* out, const float* add1, const float* add2, unsigned int num)
+volk_add<float>(float* out, const float* add1, const float* add2, unsigned int num) noexcept
 {
     volk_32f_x2_add_32f(out, add1, add2, num);
 }
@@ -74,13 +73,13 @@ template <>
 inline void volk_add<gr_complex>(gr_complex* out,
                                  const gr_complex* add1,
                                  const gr_complex* add2,
-                                 unsigned int num)
+                                 unsigned int num) noexcept
 {
     volk_32fc_x2_add_32fc(out, add1, add2, num);
 }
 
 template <typename T>
-inline void volk_sub(T* out, const T* in, const T* sub, unsigned int num)
+inline void volk_sub(T* out, const T* in, const T* sub, unsigned int num) noexcept
 {
     for (unsigned int elem = 0; elem < num; elem++) {
         out[elem] = in[elem] - sub[elem];
@@ -89,7 +88,7 @@ inline void volk_sub(T* out, const T* in, const T* sub, unsigned int num)
 
 template <>
 inline void
-volk_sub<float>(float* out, const float* in, const float* sub, unsigned int num)
+volk_sub<float>(float* out, const float* in, const float* sub, unsigned int num) noexcept
 {
     volk_32f_x2_subtract_32f(out, in, sub, num);
 }
@@ -97,7 +96,7 @@ volk_sub<float>(float* out, const float* in, const float* sub, unsigned int num)
 // TODO: Add volk_sub specialization for gr_complex?
 
 template <typename T>
-inline void volk_scale(T* out, const T scale, unsigned int num)
+inline void volk_scale(T* out, const T scale, unsigned int num) noexcept
 {
     for (unsigned int elem = 0; elem < num; elem++) {
         out[elem] *= scale;
@@ -105,14 +104,14 @@ inline void volk_scale(T* out, const T scale, unsigned int num)
 }
 
 template <>
-inline void volk_scale<float>(float* out, const float scale, unsigned int num)
+inline void volk_scale<float>(float* out, const float scale, unsigned int num) noexcept
 {
     volk_32f_s32f_normalize(out, scale, num);
 }
 
 template <>
 inline void
-volk_scale<gr_complex>(gr_complex* out, const gr_complex scale, unsigned int num)
+volk_scale<gr_complex>(gr_complex* out, const gr_complex scale, unsigned int num) noexcept
 {
     volk_32fc_s32fc_multiply_32fc(out, out, scale, num);
 }
